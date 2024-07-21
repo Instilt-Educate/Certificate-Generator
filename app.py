@@ -1,0 +1,74 @@
+from flask import Flask, send_file, request, render_template, flash
+from PIL import Image, ImageFont, ImageDraw
+from datetime import datetime
+from zipfile import ZipFile
+from io import BytesIO
+
+app = Flask(__name__)
+app.secret_key = "secret1"
+
+
+def generate_certificate(name, hours, title_size=110):
+    if len(name) > 18:
+        title_size = 95  # change this to make the font smaller or bigger if required
+
+    # change when more certificates are added
+    if hours > 150:
+        hours = 150
+
+    my_img = Image.open(f'static/{hours}cert.png')
+    my_img = my_img.convert("RGB")
+    width, height = my_img.size
+    title_font = ImageFont.truetype(r'static/Anglecia-Pro-Display.otf', title_size)
+    title_w = title_font.getlength(name)
+    image_editable = ImageDraw.Draw(my_img)
+    x = (width / 2) - (title_w / 2)
+    y = height * 0.35  # change this to move the name text up or down if required
+    image_editable.text((x, y), name, (141, 26, 26), font=title_font)
+
+    date_font = ImageFont.truetype(r'static/OpenSans-Light.ttf', 30)
+    date_text = datetime.today().strftime('%d/%m/%Y')
+    date_x = width * 0.91
+    date_y = height * 0.84
+    image_editable.text((date_x, date_y), date_text, (0, 0, 0), font=date_font)
+
+    obj = BytesIO()
+    my_img.save(obj, format="PDF", resolution=100)
+    obj.seek(0)
+    return obj
+
+
+@app.route('/')
+def index():  # put application's code here
+    return render_template("index.html")
+
+
+@app.route('/generate-pdf', methods=["POST"])
+def gen():
+    if request.method == 'POST':
+        print(request.form)
+        names = request.form.get("name").replace("\r", "").split("\n")
+        hours = request.form.get("hours")
+        if not names or not hours:
+            print("all fields not filled")
+            flash("Please fill in all the fields.")
+            return render_template("index.html")
+
+        file_list = []
+        if len(names) > 1:
+            for name in names:
+                cert = generate_certificate(name, int(hours))
+                file_list.append((cert, f"{name} {hours} Hour Certificate.pdf"))
+            with ZipFile("Certificates.zip", "w") as zipf:
+                for cert, file_name in file_list:
+                    zipf.writestr(file_name, cert.read())
+            return send_file("Certificates.zip", as_attachment=True, download_name="Certificates.zip")
+        else:
+            cert = generate_certificate(names[0], int(hours))
+            return send_file(cert, as_attachment=True, download_name=f"{names[0]} {hours} Hour Certificate.pdf")
+    else:
+        return render_template("index.html")
+
+
+if __name__ == '__main__':
+    app.run()

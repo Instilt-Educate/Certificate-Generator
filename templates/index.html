@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate PDF</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+</head>
+<body>
+    <div class="header-container">
+          <img class="home-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Instilt Logo" />
+          <h1 class="home-text">Instilt Hour Certificate Generator</h1>
+    </div>
+    <div class="content-container">
+        <h1>Generate and Download PDF</h1>
+        <form method="POST" action="/generate-pdf">
+            <label for="name">Names:</label>
+            <br>
+            <textarea id="name" name="name" rows="4" cols="50"></textarea>
+            <br>
+            <label for="hours">Hours:</label>
+            <select name="hours" id="hours">
+              <option label="50" selected="selected">50</option>
+                <option label="100">100</option>
+                <option label="150">150</option>
+                <option label="200">200</option>
+                <option label="250">250</option>
+                <option label="300">300</option>
+                <option label="350">350</option>
+                <option label="400">400</option>
+                <option label="450">450</option>
+                <option label="500">500</option>
+             </select>
+            <br>
+            <br>
+            <input type="submit" value="Generate PDF">
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+body {
+  background: linear-gradient(to right, #84fab0, #8fd3f4);
+}
+
+.home-text {
+  color: #222222;
+  justify-content: center;
+}
+
+.header-container{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+  padding: 10px;
+}
+
+.home-logo{
+  width: 4.5vh;
+  height: 4.5vh;
+  margin-right: 10px;
+  justify-content: center;
+}
+
+.content-container{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 10px;
+}
