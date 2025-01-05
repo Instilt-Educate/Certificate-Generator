@@ -1,12 +1,20 @@
 from flask import Flask, send_file, request, render_template, flash
 from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
+from flask_mail import Mail, Message
 from zipfile import ZipFile
 from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = "secret1"
 
+mail = Mail(app)
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'edu@instilt.com'
+app.config['MAIL_PASSWORD'] = 'Children@123'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
 
 def generate_certificate(name, hours, title_size=110):
     if len(name) > 18:
@@ -42,6 +50,7 @@ def generate_certificate(name, hours, title_size=110):
 def index():  # put application's code here
     return render_template("index.html")
 
+    
 
 @app.route('/generate-pdf', methods=["POST"])
 def gen():
@@ -55,6 +64,7 @@ def gen():
             return render_template("index.html")
 
         file_list = []
+       
         if len(names) > 1:
             for name in names:
                 cert = generate_certificate(name, int(hours))
@@ -68,7 +78,16 @@ def gen():
             return send_file(cert, as_attachment=True, download_name=f"{names[0]} {hours} Hour Certificate.pdf")
     else:
         return render_template("index.html")
-
-
+@app.route('/send-email',methods=["POST"])
+def send_email():
+    if request.method == 'POST':
+        emails =request.form.get("email")
+        msg = Message('Hello', sender = 'edu@instilt.com', recipients = ["{emails}"] )
+        msg.body = "This is the email body"
+        mail.send(msg)
+        return 'Email Sent successfuly!'   
+    else:
+        return render_template("index.html")
+    
 if __name__ == '__main__':
     app.run()

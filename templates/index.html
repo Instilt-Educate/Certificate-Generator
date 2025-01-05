@@ -17,6 +17,7 @@
             <br>
             <textarea id="name" name="name" rows="4" cols="50"></textarea>
             <br>
+            
             <label for="hours">Hours:</label>
             <select name="hours" id="hours">
               <option label="50" selected="selected">50</option>
@@ -34,6 +35,12 @@
             <br>
             <input type="submit" value="Generate PDF">
         </form>
+        <form method="POST" action="/send-email">
+            <label for="Emails">Emails:</label>
+            <textarea id="email" name="email"></textarea>
+            <input type="submit" value="Send Email">
+        </form>
+  
     </div>
 </body>
 </html>
