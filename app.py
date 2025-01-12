@@ -82,7 +82,7 @@ def gen():
 def send_email():
     if request.method == 'POST':
         emails =request.form.get("email")
-        msg = Message('Hello', sender = 'edu@instilt.com', recipients = ["{emails}"] )
+        msg = Message('Hello', sender = 'edu@instilt.com', recipients = [f"{emails}"] )
         msg.body = "This is the email body"
         mail.send(msg)
         return 'Email Sent successfuly!'   
