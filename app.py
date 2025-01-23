@@ -58,6 +58,7 @@ def gen():
         print(request.form)
         names = request.form.get("name").replace("\r", "").split("\n")
         hours = request.form.get("hours")
+        emails =request.form.get("email")
         if not names or not hours:
             print("all fields not filled")
             flash("Please fill in all the fields.")
@@ -78,16 +79,16 @@ def gen():
             return send_file(cert, as_attachment=True, download_name=f"{names[0]} {hours} Hour Certificate.pdf")
     else:
         return render_template("index.html")
-@app.route('/send-email',methods=["POST"])
-def send_email():
-    if request.method == 'POST':
-        emails =request.form.get("email")
-        msg = Message('Hello', sender = 'edu@instilt.com', recipients = [f"{emails}"] )
+
+def send_email(emails, attachments):
+    for email in emails:
+        msg = Message('Hello', sender = 'edu@instilt.com', recipients = [f'{email}'] )
         msg.body = "This is the email body"
+        with app.open_resource(attachments) as attachment:
+            msg.attach('attachment.pdf', 'application/pdf', attachment.read())
         mail.send(msg)
+
         return 'Email Sent successfuly!'   
-    else:
-        return render_template("index.html")
     
 if __name__ == '__main__':
     app.run()
