@@ -50,7 +50,70 @@ def generate_certificate(name, hours, title_size=110):
 def index():  # put application's code here
     return render_template("index.html")
 
+@app.route('/generate-pdfs')
+def gen_pdfs():  # put application's code here
+    return render_template("generate-pdfs.html")
+
+@app.route('/generate-pdfs-50')
+def pdfs_50():
+    response = requests.get("https://tutor-timings.vercel.app/getRecords50")
+    names = []
+
+    if response.status_code == 200:
+        json_1 = response.json()
+        for x in range(len(json_1)):
+            names.append(json_1[x]["name"])
+        file_list = []
+        for name in names:
+            cert = generate_certificate(name, 50)
+            file_list.append((cert, f"{name} {50} Hour Certificate.pdf"))
+        with ZipFile("50 Hour Certificates.zip", "w") as zipf:
+            for cert, file_name in file_list:
+                zipf.writestr(file_name, cert.read())
+        return send_file("50 Hour Certificates.zip", as_attachment=True, download_name="50 Hour Certificates.zip")
+    else:
+        pdfs_50()
     
+@app.route('/generate-pdfs-100')
+def pdfs_100():
+    response = requests.get("https://tutor-timings.vercel.app/getRecords100")
+    names = []
+
+    if response.status_code == 200:
+        json_1 = response.json()
+        for x in range(len(json_1)):
+            names.append(json_1[x]["name"])
+        file_list = []
+        for name in names:
+            cert = generate_certificate(name, 100)
+            file_list.append((cert, f"{name} {100} Hour Certificate.pdf"))
+        with ZipFile("100 Hour Certificates.zip", "w") as zipf:
+            for cert, file_name in file_list:
+                zipf.writestr(file_name, cert.read())
+        return send_file("100 Hour Certificates.zip", as_attachment=True, download_name="100 Hour Certificates.zip")
+    else:
+        pdfs_100()
+    
+@app.route('/generate-pdfs-150')
+def pdfs_150():
+    response = requests.get("https://tutor-timings.vercel.app/getRecords150")
+    names = []
+
+    if response.status_code == 200:
+        json_1 = response.json()
+        for x in range(len(json_1)):
+            names.append(json_1[x]["name"])
+        file_list = []
+        for name in names:
+            cert = generate_certificate(name, 150)
+            file_list.append((cert, f"{name} {150} Hour Certificate.pdf"))
+        with ZipFile("150 Hour Certificates.zip", "w") as zipf:
+            for cert, file_name in file_list:
+                zipf.writestr(file_name, cert.read())
+        return send_file("150 Hour Certificates.zip", as_attachment=True, download_name="150 Hour Certificates.zip")
+    else:
+        pdfs_150()
+         
 
 @app.route('/generate-pdf', methods=["POST"])
 def gen():
