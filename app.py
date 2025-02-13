@@ -5,11 +5,13 @@ from flask_mail import Mail, Message
 from zipfile import ZipFile
 from io import BytesIO
 
+import requests
+
 app = Flask(__name__)
 app.secret_key = "secret1"
 
 mail = Mail(app)
-app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'edu@instilt.com'
 app.config['MAIL_PASSWORD'] = 'Children@123'
