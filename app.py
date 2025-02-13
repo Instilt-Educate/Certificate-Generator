@@ -3,13 +3,16 @@ from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
 from flask_mail import Mail, Message
 from zipfile import ZipFile
+import zipfile
 from io import BytesIO
+
+import requests
 
 app = Flask(__name__)
 app.secret_key = "secret1"
 
 mail = Mail(app)
-app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'edu@instilt.com'
 app.config['MAIL_PASSWORD'] = 'Children@123'
@@ -66,11 +69,17 @@ def pdfs_50():
         file_list = []
         for name in names:
             cert = generate_certificate(name, 50)
-            file_list.append((cert, f"{name} {50} Hour Certificate.pdf"))
-        with ZipFile("50 Hour Certificates.zip", "w") as zipf:
+            file_list.append((cert, f"{name} 50 Hour Certificate.pdf"))
+
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
             for cert, file_name in file_list:
                 zipf.writestr(file_name, cert.read())
-        return send_file("50 Hour Certificates.zip", as_attachment=True, download_name="50 Hour Certificates.zip")
+        # print(os.listdir())
+        with open('/tmp/50 Hour Certificates.zip', 'wb') as f:
+            f.write(zip_buffer.getvalue())
+
+        return send_file("/tmp/50 Hour Certificates.zip", as_attachment=True, download_name="50 Hour Certificates.zip")
     else:
         pdfs_50()
     
