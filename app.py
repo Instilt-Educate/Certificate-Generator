@@ -96,10 +96,16 @@ def pdfs_100():
         for name in names:
             cert = generate_certificate(name, 100)
             file_list.append((cert, f"{name} {100} Hour Certificate.pdf"))
-        with ZipFile("100 Hour Certificates.zip", "w") as zipf:
+        
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
             for cert, file_name in file_list:
                 zipf.writestr(file_name, cert.read())
-        return send_file("100 Hour Certificates.zip", as_attachment=True, download_name="100 Hour Certificates.zip")
+        # print(os.listdir())
+        with open('/tmp/100 Hour Certificates.zip', 'wb') as f:
+            f.write(zip_buffer.getvalue())
+
+        return send_file("/tmp/100 Hour Certificates.zip", as_attachment=True, download_name="100 Hour Certificates.zip")
     else:
         pdfs_100()
     
@@ -116,10 +122,16 @@ def pdfs_150():
         for name in names:
             cert = generate_certificate(name, 150)
             file_list.append((cert, f"{name} {150} Hour Certificate.pdf"))
-        with ZipFile("150 Hour Certificates.zip", "w") as zipf:
+
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
             for cert, file_name in file_list:
                 zipf.writestr(file_name, cert.read())
-        return send_file("150 Hour Certificates.zip", as_attachment=True, download_name="150 Hour Certificates.zip")
+        # print(os.listdir())
+        with open('/tmp/150 Hour Certificates.zip', 'wb') as f:
+            f.write(zip_buffer.getvalue())
+
+        return send_file("/tmp/150 Hour Certificates.zip", as_attachment=True, download_name="150 Hour Certificates.zip")
     else:
         pdfs_150()
          
@@ -142,10 +154,16 @@ def gen():
             for name in names:
                 cert = generate_certificate(name, int(hours))
                 file_list.append((cert, f"{name} {hours} Hour Certificate.pdf"))
-            with ZipFile("Certificates.zip", "w") as zipf:
+        
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
                 for cert, file_name in file_list:
                     zipf.writestr(file_name, cert.read())
-            return send_file("Certificates.zip", as_attachment=True, download_name="Certificates.zip")
+            # print(os.listdir())
+            with open('/tmp/Certificates.zip', 'wb') as f:
+                f.write(zip_buffer.getvalue())
+
+            return send_file("/tmp/Certificates.zip", as_attachment=True, download_name="Certificates.zip")
         else:
             cert = generate_certificate(names[0], int(hours))
             return send_file(cert, as_attachment=True, download_name=f"{names[0]} {hours} Hour Certificate.pdf")
