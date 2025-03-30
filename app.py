@@ -174,9 +174,10 @@ def gen():
 def send_email():
     attachment=request.form.get(attachment)
     emails=request.form.get(emails)
+    hours=request.form.get(hours)
     for email in emails:
         msg = Message('Hello', sender = 'edu@instilt.com', recipients = [f'{email}'] )
-        msg.body = "This is the email body"
+        msg.body = "Hello, this is the email being sent, you have received {hours}"
         with app.open_resource(attachment) as attachment:
             msg.attach('attachment.pdf', 'application/pdf', attachment.read())
         mail.send(msg)
