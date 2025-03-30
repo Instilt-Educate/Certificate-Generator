@@ -57,7 +57,11 @@ def index():  # put application's code here
 def gen_pdfs():  # put application's code here
     return render_template("generate-pdfs.html")
 
+<<<<<<< HEAD
 @app.route('/generate-pdfs-50',methods=["POST","GET"])
+=======
+@app.route('/generate-pdfs-50')
+>>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
 def pdfs_50():
     response = requests.get("https://tutor-timings.vercel.app/getRecords50")
     names = []
@@ -83,7 +87,11 @@ def pdfs_50():
     else:
         pdfs_50()
     
+<<<<<<< HEAD
 @app.route('/generate-pdfs-100', methods=["POST","GET"])
+=======
+@app.route('/generate-pdfs-100')
+>>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
 def pdfs_100():
     response = requests.get("https://tutor-timings.vercel.app/getRecords100")
     names = []
@@ -109,7 +117,11 @@ def pdfs_100():
     else:
         pdfs_100()
     
+<<<<<<< HEAD
 @app.route('/generate-pdfs-150' ,methods=["POST","GET"])
+=======
+@app.route('/generate-pdfs-150')
+>>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
 def pdfs_150():
     response = requests.get("https://tutor-timings.vercel.app/getRecords150")
     names = []
@@ -133,7 +145,11 @@ def pdfs_150():
 
         return send_file("/tmp/150 Hour Certificates.zip", as_attachment=True, download_name="150 Hour Certificates.zip")
     else:
+<<<<<<< HEAD
         return render_template("generate-pdfs.html")
+=======
+        pdfs_150()
+>>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
          
 
 @app.route('/generate-pdf', methods=["POST"])
