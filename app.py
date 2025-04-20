@@ -144,8 +144,9 @@ def send_email():
 
     if len(names) != len(emails):
         return {"error": "The number of names and emails must match"}, 400
-    emails = ["ayush@instilt.com"]
-    names = ["Ayush"]
+    # replace with own email for testing!!!
+    # emails = ["ayush@instilt.com"]
+    # names = ["test"]
     for name, email in zip(names, emails):
         name = name.strip()
         email = email.strip()
