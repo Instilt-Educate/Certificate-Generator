@@ -6,14 +6,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 </head>
 <body>
-    <nav>
-        <p><a href="/generate-pdfs">Generate PDF</a></p>
-        <p><a href="/">Send PDF</a></p>
-    </nav>
+    
     <div class="header-container">
           <img class="home-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Instilt Logo" />
           <h1 class="home-text">Instilt Hour Certificate Generator</h1>
     </div>
+
+    <div class="nav-container">
+        <nav class="horizontal-nav">
+            <a href="/">Main Page</a>
+            <a href="/generate-pdfs">Generate PDF</a>
+            <a href="/send-emails">Send Emails</a>
+        </nav>
+    </div>
+
     <div class="content-container">
         <h1>Generate and Download PDF</h1>
         <form method="POST" action="/generate-pdf">
@@ -21,8 +27,6 @@
             <br>
             <textarea id="name" name="name" rows="4" cols="50"></textarea>
             <br>
-            <label for="Emails">Emails:</label>
-            <textarea id="email" name="email"></textarea>
             <label for="hours">Hours:</label>
             <select name="hours" id="hours">
               <option label="50" selected="selected">50</option>
@@ -39,15 +43,7 @@
             <br>
             <br>
             <input type="submit" value="Generate PDF">
-        </form>
-        <form method="POST" action="/send-email">
-            <input type="file" id="attachment" name="attachment">
-            <label for="certificate_attach">
-            <label for="Emails">Emails:</label>
-            <input type="email" id="email" name="email">
-            <input type="submit" value="Send Email">
-        </form>
-  
+        </form>  
     </div>
 </body>
 </html>

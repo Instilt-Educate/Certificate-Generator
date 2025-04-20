@@ -5,19 +5,20 @@ from flask_mail import Mail, Message
 from zipfile import ZipFile
 import zipfile
 from io import BytesIO
+import os
 
 import requests
 
 app = Flask(__name__)
 app.secret_key = "secret1"
 
-mail = Mail(app)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'edu@instilt.com'
 app.config['MAIL_PASSWORD'] = 'Children@123'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
 
 def generate_certificate(name, hours, title_size=110):
     if len(name) > 18:
@@ -53,104 +54,45 @@ def generate_certificate(name, hours, title_size=110):
 def index():  # put application's code here
     return render_template("index.html")
 
-@app.route('/generate-pdfs')
-def gen_pdfs():  # put application's code here
+@app.route('/generate-pdfs', methods=["POST", "GET"])
+def generate_pdfs():
     return render_template("generate-pdfs.html")
 
-<<<<<<< HEAD
-@app.route('/generate-pdfs-50',methods=["POST","GET"])
-=======
-@app.route('/generate-pdfs-50')
->>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
-def pdfs_50():
-    response = requests.get("https://tutor-timings.vercel.app/getRecords50")
-    names = []
+@app.route('/send-emails')
+def send_emails():
+    return render_template("send-emails.html")
 
+@app.route('/generate-hour-pdfs', methods=["POST"])
+def gen_pdfs():
+    hours = request.form.get("hours")  # Get hours from form data
+    if not hours:
+        return {"error": "Hours not provided"}, 400
+
+    response = requests.get(f"https://tutor-timings.vercel.app/getRecords{hours}")
+    names = []
     if response.status_code == 200:
         json_1 = response.json()
         for x in range(len(json_1)):
-            names.append(json_1[x]["name"])
+            names.append(json_1[x]["name"].strip())
         file_list = []
         for name in names:
-            cert = generate_certificate(name, 50)
-            file_list.append((cert, f"{name} 50 Hour Certificate.pdf"))
+            cert = generate_certificate(name, int(hours))
+            file_list.append((cert, f"{name} {hours} Hour Certificate.pdf"))
 
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
+        with ZipFile("Certificates.zip", "w") as zipf:
             for cert, file_name in file_list:
                 zipf.writestr(file_name, cert.read())
-        # print(os.listdir())
-        with open('/tmp/50 Hour Certificates.zip', 'wb') as f:
-            f.write(zip_buffer.getvalue())
 
-        return send_file("/tmp/50 Hour Certificates.zip", as_attachment=True, download_name="50 Hour Certificates.zip")
+        return send_file(
+            "Certificates.zip",
+            as_attachment=True,
+            download_name=f"{hours} Hour Certificates.zip",
+        )
     else:
-        pdfs_50()
-    
-<<<<<<< HEAD
-@app.route('/generate-pdfs-100', methods=["POST","GET"])
-=======
-@app.route('/generate-pdfs-100')
->>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
-def pdfs_100():
-    response = requests.get("https://tutor-timings.vercel.app/getRecords100")
-    names = []
+        print("error in fetching records", response.status_code)
+        print(response.text)
+        return {"error": "Failed to fetch records, please try again or reach out to Tech Ops!"}, 500
 
-    if response.status_code == 200:
-        json_1 = response.json()
-        for x in range(len(json_1)):
-            names.append(json_1[x]["name"])
-        file_list = []
-        for name in names:
-            cert = generate_certificate(name, 100)
-            file_list.append((cert, f"{name} {100} Hour Certificate.pdf"))
-        
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
-            for cert, file_name in file_list:
-                zipf.writestr(file_name, cert.read())
-        # print(os.listdir())
-        with open('/tmp/100 Hour Certificates.zip', 'wb') as f:
-            f.write(zip_buffer.getvalue())
-
-        return send_file("/tmp/100 Hour Certificates.zip", as_attachment=True, download_name="100 Hour Certificates.zip")
-    else:
-        pdfs_100()
-    
-<<<<<<< HEAD
-@app.route('/generate-pdfs-150' ,methods=["POST","GET"])
-=======
-@app.route('/generate-pdfs-150')
->>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
-def pdfs_150():
-    response = requests.get("https://tutor-timings.vercel.app/getRecords150")
-    names = []
-
-    if response.status_code == 200:
-        json_1 = response.json()
-        for x in range(len(json_1)):
-            names.append(json_1[x]["name"])
-        file_list = []
-        for name in names:
-            cert = generate_certificate(name, 150)
-            file_list.append((cert, f"{name} {150} Hour Certificate.pdf"))
-
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
-            for cert, file_name in file_list:
-                zipf.writestr(file_name, cert.read())
-        # print(os.listdir())
-        with open('/tmp/150 Hour Certificates.zip', 'wb') as f:
-            f.write(zip_buffer.getvalue())
-
-        return send_file("/tmp/150 Hour Certificates.zip", as_attachment=True, download_name="150 Hour Certificates.zip")
-    else:
-<<<<<<< HEAD
-        return render_template("generate-pdfs.html")
-=======
-        pdfs_150()
->>>>>>> d300f0bf39fcfd4ed5567f7383d85daaa728d98f
-         
 
 @app.route('/generate-pdf', methods=["POST"])
 def gen():
@@ -159,7 +101,7 @@ def gen():
         names = request.form.get("name").replace("\r", "").split("\n")
         hours = request.form.get("hours")
         
-        emails =request.form.get("email")
+        emails = request.form.get("email")
         if not names or not hours:
             print("all fields not filled")
             flash("Please fill in all the fields.")
@@ -169,6 +111,7 @@ def gen():
        
         if len(names) > 1:
             for name in names:
+                name = name.strip()
                 cert = generate_certificate(name, int(hours))
                 file_list.append((cert, f"{name} {hours} Hour Certificate.pdf"))
         
@@ -177,28 +120,70 @@ def gen():
                 for cert, file_name in file_list:
                     zipf.writestr(file_name, cert.read())
             # print(os.listdir())
-            with open('/tmp/Certificates.zip', 'wb') as f:
+            save_dir = "tmp" if os.getenv("VERCEL") is None else "/tmp"
+            os.makedirs(save_dir, exist_ok=True)
+            with open(f'{save_dir}/Certificates.zip', 'wb') as f:
                 f.write(zip_buffer.getvalue())
 
-            return send_file("/tmp/Certificates.zip", as_attachment=True, download_name="Certificates.zip")
+            return send_file(f"{save_dir}/Certificates.zip", as_attachment=True, download_name="Certificates.zip")
         else:
             cert = generate_certificate(names[0], int(hours))
             return send_file(cert, as_attachment=True, download_name=f"{names[0]} {hours} Hour Certificate.pdf")
     else:
         return render_template("index.html")
-@app.route("/send_email")
-def send_email():
-    attachment=request.form.get(attachment)
-    emails=request.form.get(emails)
-    hours=request.form.get(hours)
-    for email in emails:
-        msg = Message('Hello', sender = 'edu@instilt.com', recipients = [f'{email}'] )
-        msg.body = "Hello, this is the email being sent, you have received {hours}"
-        with app.open_resource(attachment) as attachment:
-            msg.attach('attachment.pdf', 'application/pdf', attachment.read())
-        mail.send(msg)
 
-        return 'Email Sent successfuly!'   
+
+@app.route("/send-email", methods=["POST"])
+def send_email():
+    names = request.json.get("names")
+    emails = request.json.get("emails")
+    hours = request.json.get("hours")
+
+    if not names or not emails or not hours:
+        return {"error": "All fields (names, emails, hours) are required"}, 400
+
+    if len(names) != len(emails):
+        return {"error": "The number of names and emails must match"}, 400
+    emails = ["ayush@instilt.com"]
+    names = ["Ayush"]
+    for name, email in zip(names, emails):
+        name = name.strip()
+        email = email.strip()
+        cert = generate_certificate(name, int(hours))
+        try:
+            msg = Message(
+                'Instilt Volunteer Hour Certificate',
+                sender='edu@instilt.com',
+                recipients=[email]
+            )
+            msg.body = f"Hello {name},\n\nPlease find attached your {hours}-hour certificate.\n\nBest regards,\nInstilt Team"
+            msg.attach(f"{name} {hours} Hour Certificate.pdf", "application/pdf", cert.read())
+            mail.send(msg)
+
+        except Exception as e:
+            print(f"Failed to send email to {email}: {e}")
+            return {"error": f"Failed to send email to {email}"}, 500
+
+    return {"message": "Emails sent successfully!"}, 200
+
+
+@app.route('/get-names-emails', methods=["GET"])
+def get_names_emails():
+    hours = request.args.get("hours")  # Get hours from query parameters
+    if not hours:
+        return {"error": "Hours not provided"}, 400
+
+    response = requests.get(f"https://tutor-timings.vercel.app/getRecords{hours}")
+    if response.status_code == 200:
+        json_data = response.json()
+        names = [record["name"] for record in json_data]
+        emails = [record["email"]["email"] for record in json_data if "email" in record]  # Ensure email exists
+        return {"names": names, "emails": emails}, 200
+    else:
+        print("Error fetching records:", response.status_code)
+        print(response.text)
+        return {"error": "Failed to fetch records"}, 500
     
 if __name__ == '__main__':
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.run()

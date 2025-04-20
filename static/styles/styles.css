@@ -1,10 +1,14 @@
 body {
   background: linear-gradient(to right, #84fab0, #8fd3f4);
+  font-family: Arial, sans-serif;
+  margin: 20px;
 }
 
 .home-text {
   color: #222222;
   justify-content: center;
+  display: block;
+  margin-bottom: 10px;
 }
 
 .header-container{
@@ -14,6 +18,7 @@ body {
   align-items: center;
   flex-direction: row;
   padding: 10px;
+  text-align: center;
 }
 
 .home-logo{
@@ -21,6 +26,7 @@ body {
   height: 4.5vh;
   margin-right: 10px;
   justify-content: center;
+  max-width: 100px;
 }
 
 .content-container{
@@ -30,4 +36,52 @@ body {
     align-items: center;
     flex-direction: column;
     padding: 10px;
+}
+
+.nav-container {
+    margin-top: 10px;
+    text-align: center;
+    display: block;
+    margin-top: 10px;
+}
+
+.nav-container nav p {
+    margin: 5px 0;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+select, textarea, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+}
+
+.horizontal-nav {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 10px 0;
+    border-radius: 5px;
+}
+
+.horizontal-nav a {
+    text-decoration: none;
+    color: #222222;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+}
+
+.horizontal-nav a:hover {
+    background-color: #8fd3f4;
+    color: #ffffff;
 }

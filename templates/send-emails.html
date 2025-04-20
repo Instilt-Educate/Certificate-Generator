@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Emails</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+</head>
+<body>
+    <div class="header-container">
+        <img class="home-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Instilt Logo" />
+        <h1 class="home-text">Instilt Hour Certificate Generator</h1>
+    </div>
+
+    <div class="nav-container">
+        <nav class="horizontal-nav">
+            <a href="/">Main Page</a>
+            <a href="/generate-pdfs">Generate PDF</a>
+            <a href="/send-emails">Send Emails</a>
+        </nav>
+    </div>
+
+    <div class="content-container">
+        <h1>Send Emails</h1>
+        <form id="emailForm">
+            <div class="form-group">
+                <label for="hoursDropdown">Select Hours:</label>
+                <select id="hoursDropdown" name="hours">
+                    <option label="50" selected="selected">50</option>
+                    <option label="100">100</option>
+                    <option label="150">150</option>
+                    <option label="200">200</option>
+                    <option label="250">250</option>
+                    <option label="300">300</option>
+                    <option label="350">350</option>
+                    <option label="400">400</option>
+                    <option label="450">450</option>
+                    <option label="500">500</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="button" id="fetchDataButton">Fetch Names and Emails</button>
+            </div>
+            <div class="form-group">
+                <label for="namesTextarea">Names:</label>
+                <textarea id="namesTextarea" name="names" rows="5" cols="80"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="emailsTextarea">Emails:</label>
+                <textarea id="emailsTextarea" name="emails" rows="5" cols="80"></textarea>
+            </div>
+            <div class="form-group">
+                <button type="button" id="sendEmailButton" onclick="sendEmails()" disabled>Send Emails</button>
+            </div>
+        </form>
+    </div>
+    <script>
+        document.getElementById('fetchDataButton').addEventListener('click', async function () {
+            const selectedHour = document.getElementById('hoursDropdown').value;
+            if (!selectedHour) {
+                alert('Please select an hour.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/get-names-emails?hours=${selectedHour}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+                const data = await response.json();
+                document.getElementById('namesTextarea').value = data.names.join('\n');
+                document.getElementById('emailsTextarea').value = data.emails.join('\n');
+
+                const sendEmailButton = document.getElementById('sendEmailButton');
+                sendEmailButton.disabled = data.emails.length === 0;
+            } catch (error) {
+                alert('Error fetching names and emails: ' + error.message);
+                document.getElementById('namesTextarea').value = '';
+                document.getElementById('emailsTextarea').value = '';
+            }
+        });
+
+        async function sendEmails() {
+            const names = document.getElementById('namesTextarea').value;
+            const emails = document.getElementById('emailsTextarea').value;
+            const hours = document.getElementById('hoursDropdown').value;
+
+            if (!names || !emails || !hours) {
+                alert('Please ensure names, emails, and hours are provided.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/send-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        names: names.split('\n'),
+                        emails: emails.split('\n'),
+                        hours: hours
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send emails');
+                }
+
+                alert('Emails sent successfully!');
+            } catch (error) {
+                alert('Error sending emails: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

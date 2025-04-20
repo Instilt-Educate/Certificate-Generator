@@ -308,3 +308,4 @@ pip-selfcheck.json
 .history
 .ionide
 .vercel
+/tmp
