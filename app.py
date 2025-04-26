@@ -174,7 +174,7 @@ def get_names_emails():
     if not hours:
         return {"error": "Hours not provided"}, 400
 
-    response = requests.get(f"https://tutor-timings.vercel.app/getRecords{hours}")
+    response = requests.get(f"https://tutor-timings.vercel.app/getRecords?hour={hours}")
     if response.status_code == 200:
         json_data = response.json()
         names = [record["name"] for record in json_data]
