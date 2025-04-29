@@ -68,7 +68,7 @@ def gen_pdfs():
     if not hours:
         return {"error": "Hours not provided"}, 400
 
-    response = requests.get(f"https://tutor-timings.vercel.app/getRecords{hours}")
+    response = requests.get(f"https://tutor-timings.vercel.app/getRecords?hour={hours}")
     names = []
     if response.status_code == 200:
         json_1 = response.json()
