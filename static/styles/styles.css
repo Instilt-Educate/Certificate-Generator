@@ -204,6 +204,23 @@ button {
     color: #7a5d00;
 }
 
+.clear-all-btn {
+    background: #f8d7da;
+    border: 1px solid #e57373;
+    color: #a94442;
+    border-radius: 4px;
+    padding: 5px 12px;
+    font-weight: 600;
+    margin-top: 2px;
+    margin-bottom: 8px;
+    transition: background 0.2s, border 0.2s, color 0.2s;
+}
+.clear-all-btn:hover {
+    background: #f5bcbc;
+    border-color: #e57373;
+    color: #7a2c2c;
+}
+
 @media (max-width: 900px) {
   .header-container,
   .content-container,

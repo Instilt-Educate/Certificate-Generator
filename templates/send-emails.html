@@ -60,6 +60,7 @@
                     </table>
                 </div>
                 <button type="button" class="add-row-btn" onclick="addRow('', '', '', true)">Add Row</button>
+                <button type="button" class="clear-all-btn" onclick="clearAllRows()">Clear All</button>
             </div>
             <div class="form-group">
                 <button type="button" id="sendEmailButton" onclick="sendEmails()" disabled>Send Emails</button>
@@ -75,16 +76,35 @@
             const hourCell = row.insertCell(2);
             const removeCell = row.insertCell(3);
 
-            nameCell.innerHTML = `<input type="text" value="${name}" class="input-name">`;
-            emailCell.innerHTML = `<input type="text" value="${email}" class="input-email">`;
+            nameCell.innerHTML = `<input type="text" value="${name}" class="input-name" oninput="updateSendButtonState()">`;
+            emailCell.innerHTML = `<input type="text" value="${email}" class="input-email" oninput="updateSendButtonState()">`;
             hourCell.innerHTML = `<input type="text" value="${hour}" class="input-hour" ${editableHour ? '' : 'readonly'}>`;
             removeCell.innerHTML = `<button type="button" onclick="removeRow(this)" class="remove-btn">Remove</button>`;
             row.classList.add("styled-row");
+
+            // Immediately check if the send button should be enabled
+            updateSendButtonState();
         }
 
         function removeRow(btn) {
             const row = btn.parentNode.parentNode;
             row.parentNode.removeChild(row);
+            updateSendButtonState();
+        }
+
+        function updateSendButtonState() {
+            const table = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
+            const rows = table.getElementsByTagName('tr');
+            let enable = false;
+            for (let i = 0; i < rows.length; i++) {
+                const name = rows[i].cells[0].getElementsByTagName('input')[0].value.trim();
+                const email = rows[i].cells[1].getElementsByTagName('input')[0].value.trim();
+                if (name && email) {
+                    enable = true;
+                    break;
+                }
+            }
+            document.getElementById('sendEmailButton').disabled = !enable;
         }
 
         document.getElementById('fetchDataButton').addEventListener('click', async function () {
@@ -115,15 +135,21 @@
                     );
                 }
 
-                const sendEmailButton = document.getElementById('sendEmailButton');
-                sendEmailButton.disabled = data.emails.length === 0;
+                updateSendButtonState();
             } catch (error) {
                 alert('Error fetching names and emails: ' + error.message);
                 // Clear table
                 const tableBody = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
                 tableBody.innerHTML = '';
+                updateSendButtonState();
             }
         });
+
+        function clearAllRows() {
+            const tableBody = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            updateSendButtonState();
+        }
 
         async function sendEmails() {
             const table = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
