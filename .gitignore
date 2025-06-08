@@ -309,3 +309,6 @@ pip-selfcheck.json
 .ionide
 .vercel
 /tmp
+token.json
+creds.py
+cred.json

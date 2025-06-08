@@ -1,34 +1,32 @@
 from flask import Flask, send_file, request, render_template, flash
 from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
-from flask_mail import Mail, Message
 from zipfile import ZipFile
 import zipfile
 from io import BytesIO
+import dotenv
 import os
 
 import requests
+import base64
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
+dotenv.load_dotenv('.env')
 app = Flask(__name__)
 app.secret_key = "secret1"
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'edu@instilt.com'
-app.config['MAIL_PASSWORD'] = 'Children@123'
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-mail = Mail(app)
 
-def generate_certificate(name, hours, title_size=110):
+def generate_certificate(name, tier, title_size=110):
     if len(name) > 18:
         title_size = 95  # change this to make the font smaller or bigger if required
-
-    # change when more certificates are added
-    if hours > 150:
-        hours = 150
-
-    my_img = Image.open(f'static/{hours}cert.png')
+    try:
+        my_img = Image.open(f'static/{tier.lower()}.png')
+    except:
+        my_img = Image.open(f'static/bronze.png')
     my_img = my_img.convert("RGB")
     width, height = my_img.size
     title_font = ImageFont.truetype(r'static/Anglecia-Pro-Display.otf', title_size)
@@ -51,24 +49,27 @@ def generate_certificate(name, hours, title_size=110):
 
 
 @app.route('/')
-def index():  # put application's code here
+def index():
     return render_template("index.html")
+
 
 @app.route('/generate-pdfs', methods=["POST", "GET"])
 def generate_pdfs():
     return render_template("generate-pdfs.html")
 
+
 @app.route('/send-emails')
 def send_emails():
     return render_template("send-emails.html")
 
+
 @app.route('/generate-hour-pdfs', methods=["POST"])
 def gen_pdfs():
-    hours = request.form.get("hours")  # Get hours from form data
-    if not hours:
-        return {"error": "Hours not provided"}, 400
+    tier = request.form.get("hours")  # This is the tier name
+    if not tier:
+        return {"error": "Tier not provided"}, 400
 
-    response = requests.get(f"https://tutor-timings.vercel.app/getRecords{hours}")
+    response = requests.get(f"https://tutor-timings.vercel.app/getRecords?tier={tier}")
     names = []
     if response.status_code == 200:
         json_1 = response.json()
@@ -76,8 +77,8 @@ def gen_pdfs():
             names.append(json_1[x]["name"].strip())
         file_list = []
         for name in names:
-            cert = generate_certificate(name, int(hours))
-            file_list.append((cert, f"{name} {hours} Hour Certificate.pdf"))
+            cert = generate_certificate(name, tier)
+            file_list.append((cert, f"{name} {tier.title()} Certificate.pdf"))
 
         with ZipFile("Certificates.zip", "w") as zipf:
             for cert, file_name in file_list:
@@ -86,7 +87,7 @@ def gen_pdfs():
         return send_file(
             "Certificates.zip",
             as_attachment=True,
-            download_name=f"{hours} Hour Certificates.zip",
+            download_name=f"{tier.title()} Certificates.zip",
         )
     else:
         print("error in fetching records", response.status_code)
@@ -99,27 +100,23 @@ def gen():
     if request.method == 'POST':
         print(request.form)
         names = request.form.get("name").replace("\r", "").split("\n")
-        hours = request.form.get("hours")
-        
+        tier = request.form.get("hours")
         emails = request.form.get("email")
-        if not names or not hours:
+        if not names or not tier:
             print("all fields not filled")
             flash("Please fill in all the fields.")
             return render_template("index.html")
 
         file_list = []
-       
         if len(names) > 1:
             for name in names:
                 name = name.strip()
-                cert = generate_certificate(name, int(hours))
-                file_list.append((cert, f"{name} {hours} Hour Certificate.pdf"))
-        
+                cert = generate_certificate(name, tier)
+                file_list.append((cert, f"{name} {tier.title()} Certificate.pdf"))
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
                 for cert, file_name in file_list:
                     zipf.writestr(file_name, cert.read())
-            # print(os.listdir())
             save_dir = "tmp" if os.getenv("VERCEL") is None else "/tmp"
             os.makedirs(save_dir, exist_ok=True)
             with open(f'{save_dir}/Certificates.zip', 'wb') as f:
@@ -127,40 +124,122 @@ def gen():
 
             return send_file(f"{save_dir}/Certificates.zip", as_attachment=True, download_name="Certificates.zip")
         else:
-            cert = generate_certificate(names[0], int(hours))
-            return send_file(cert, as_attachment=True, download_name=f"{names[0]} {hours} Hour Certificate.pdf")
+            cert = generate_certificate(names[0], tier)
+            return send_file(cert, as_attachment=True, download_name=f"{names[0]} {tier.title()} Certificate.pdf")
     else:
         return render_template("index.html")
+
+
+def build_gmail_service():
+    creds = Credentials(
+        token=None,
+        refresh_token=os.environ['GMAIL_REFRESH_TOKEN'],
+        token_uri='https://oauth2.googleapis.com/token',
+        client_id=os.environ['GMAIL_CLIENT_ID'],
+        client_secret=os.environ['GMAIL_CLIENT_SECRET'],
+        scopes=['https://www.googleapis.com/auth/gmail.send']
+    )
+    return build('gmail', 'v1', credentials=creds)
+
+
+# Cache the Gmail API service at startup
+gmail_service = build_gmail_service()
+
+
+def send_gmail_api_email(to, subject, html_body, body, attachment_bytes=None, attachment_filename=None):
+    # Use the cached gmail_service
+    global gmail_service
+
+    if attachment_bytes and attachment_filename:
+        message = MIMEMultipart()
+        message['to'] = to
+        message['from'] = "edu@instilt.com"
+        message['subject'] = subject
+
+        # Attach body
+        message.attach(MIMEText(html_body, 'html'))
+        # message.attach(MIMEText(body, 'plain'))
+
+        # Attach PDF
+        part = MIMEApplication(attachment_bytes, Name=attachment_filename)
+        part['Content-Disposition'] = f'attachment; filename="{attachment_filename}"'
+        message.attach(part)
+
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    else:
+        msg = MIMEText(body)
+        msg['to'] = to
+        msg['from'] = "edu@instilt.com"
+        msg['subject'] = subject
+        msg.attach(MIMEText(html_body, 'html'))
+        msg.attach(MIMEText(body, 'plain'))
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
+    gmail_service.users().messages().send(userId='me', body={'raw': raw}).execute()
 
 
 @app.route("/send-email", methods=["POST"])
 def send_email():
     names = request.json.get("names")
     emails = request.json.get("emails")
-    hours = request.json.get("hours")
+    tier = request.json.get("hours")
 
-    if not names or not emails or not hours:
+    if not names or not emails or not tier:
         return {"error": "All fields (names, emails, hours) are required"}, 400
-
     if len(names) != len(emails):
         return {"error": "The number of names and emails must match"}, 400
-    # replace with own email for testing!!!
-    # emails = ["ayush@instilt.com"]
-    # names = ["test"]
-    for name, email in zip(names, emails):
-        name = name.strip()
-        email = email.strip()
-        cert = generate_certificate(name, int(hours))
-        try:
-            msg = Message(
-                'Instilt Volunteer Hour Certificate',
-                sender='edu@instilt.com',
-                recipients=[email]
-            )
-            msg.body = f"Hello {name},\n\nPlease find attached your {hours}-hour certificate.\n\nBest regards,\nInstilt Team"
-            msg.attach(f"{name} {hours} Hour Certificate.pdf", "application/pdf", cert.read())
-            mail.send(msg)
 
+    for name, email in zip(names, emails):
+        name = name.strip().title()
+        email = email.strip()
+        cert = generate_certificate(name, tier)
+        cert_bytes = cert.read()
+        subject = 'Instilt Volunteer Hour Certificate'
+
+        html_body = f"""
+        <html>
+          <body>
+            <p>Hi {name},</p>
+            <p>
+              We hope this email finds you well. Below you will find your volunteer
+              hours certificate as a token of appreciation from us. Your commitment
+              and generosity have made a real difference. Every hour you&#39;ve given
+              has contributed to something bigger than yourself, leaving a lasting
+              impact on those around you.
+            </p>
+            <p>
+              The Certificate of Achievement is granted based on accumulated
+              volunteer hours, with the following tiers:
+              <strong>Bronze</strong> (0–49 hours),
+              <strong>Silver</strong> (50–99 hours),
+              <strong>Gold</strong> (100–149 hours),
+              <strong>Platinum</strong> (150–199 hours),
+              and <strong>Diamond</strong> (200+ hours).
+            </p>
+            <p>Thank you for sharing your time, kindness, and energy.</p>
+            <p>
+              Best regards,<br/>
+              Instilt Educate<br/>
+            </p>
+          </body>
+        </html>
+        """
+
+        fallback_body = (
+            f"Hi {name},\nWe hope this email finds you well. Below you will find your volunteer hours certificate as a token of appreciation from us. Your commitment and generosity have made a real difference. Every hour you've given has contributed to something bigger than yourself, leaving a lasting impact on those around you. The Certificate of Achievement is granted based on accumulated volunteer hours, with the following tiers: Bronze (0-49 hours), Silver (50-99 hours), Gold (100-149 hours), Platinum (150-199 hours), and Diamond (200+ hours).\n"
+            "Thank you for sharing your time, kindness, and energy.\n\n"
+            "Best\n"
+            "Instilt Educate"
+        )
+        try:
+            send_gmail_api_email(
+                to=email,
+                subject=subject,
+                html_body=html_body,
+                body=fallback_body,
+                attachment_bytes=cert_bytes,
+                attachment_filename=f"{name} {tier.title()} Certificate.pdf"
+            )
         except Exception as e:
             print(f"Failed to send email to {email}: {e}")
             return {"error": f"Failed to send email to {email}"}, 500
@@ -170,21 +249,23 @@ def send_email():
 
 @app.route('/get-names-emails', methods=["GET"])
 def get_names_emails():
-    hours = request.args.get("hours")  # Get hours from query parameters
-    if not hours:
-        return {"error": "Hours not provided"}, 400
+    tier = request.args.get("hours")  # This is the tier name
+    if not tier:
+        return {"error": "Tier not provided"}, 400
 
-    response = requests.get(f"https://tutor-timings.vercel.app/getRecords{hours}")
+    response = requests.get(f"https://tutor-timings.vercel.app/getRecords?tier={tier}")
     if response.status_code == 200:
         json_data = response.json()
         names = [record["name"] for record in json_data]
-        emails = [record["email"]["email"] for record in json_data if "email" in record]  # Ensure email exists
-        return {"names": names, "emails": emails}, 200
+        emails = [record["email"] for record in json_data if "email" in record]
+        hours = [record.get("hours", "") for record in json_data]
+        return {"names": names, "emails": emails, "hours": hours, "tier": tier}, 200
     else:
         print("Error fetching records:", response.status_code)
         print(response.text)
         return {"error": "Failed to fetch records"}, 500
-    
+
+
 if __name__ == '__main__':
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.run()

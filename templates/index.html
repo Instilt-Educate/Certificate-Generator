@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Generate PDF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 </head>
 <body>
-    
     <div class="header-container">
-          <img class="home-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Instilt Logo" />
-          <h1 class="home-text">Instilt Hour Certificate Generator</h1>
+        <img class="home-logo" src="{{ url_for('static', filename='logo.png') }}" alt="Instilt Logo" />
+        <h1 class="home-text">Instilt Hour Certificate Generator</h1>
     </div>
-
     <div class="nav-container">
         <nav class="horizontal-nav">
             <a href="/">Main Page</a>
@@ -19,7 +18,6 @@
             <a href="/send-emails">Send Emails</a>
         </nav>
     </div>
-
     <div class="content-container">
         <h1>Generate and Download PDF</h1>
         <form method="POST" action="/generate-pdf">
@@ -29,17 +27,12 @@
             <br>
             <label for="hours">Hours:</label>
             <select name="hours" id="hours">
-              <option label="50" selected="selected">50</option>
-                <option label="100">100</option>
-                <option label="150">150</option>
-                <option label="200">200</option>
-                <option label="250">250</option>
-                <option label="300">300</option>
-                <option label="350">350</option>
-                <option label="400">400</option>
-                <option label="450">450</option>
-                <option label="500">500</option>
-             </select>
+                <option value="bronze" selected="selected">Bronze (0–49 hours)</option>
+                <option value="silver">Silver (50–99 hours)</option>
+                <option value="gold">Gold (100–149 hours)</option>
+                <option value="platinum">Platinum (150–199 hours)</option>
+                <option value="diamond">Diamond (200+ hours)</option>
+            </select>
             <br>
             <br>
             <input type="submit" value="Generate PDF">

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Generate PDF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
 </head>
 <body onload="hideLoadingText()">
@@ -20,17 +21,26 @@
     </div>
 
     <div class="content-container">
+         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
+            <input type="hidden" name="hours" value="bronze">
+            <button type="submit">Bronze (0–49 hours) Certificates</button>
+        </form>
+
         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="50">
-            <button type="submit">50 Hour Certificates</button>
+            <input type="hidden" name="hours" value="silver">
+            <button type="submit">Silver (50–99 hours) Certificates</button>
         </form>
         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="100">
-            <button type="submit">100 Hour Certificates</button>
+            <input type="hidden" name="hours" value="gold">
+            <button type="submit">Gold (100–149 hours) Certificates</button>
         </form>
         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="150">
-            <button type="submit">150 Hour Certificates</button>
+            <input type="hidden" name="hours" value="platinum">
+            <button type="submit">Platinum (150–199 hours) Certificates</button>
+        </form>
+         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
+            <input type="hidden" name="hours" value="diamond">
+            <button type="submit">Diamond (200+ hours) Certificates</button>
         </form>
     </div>
     <div id="loading-text" style="display: none; text-align: center; margin-top: 20px;">

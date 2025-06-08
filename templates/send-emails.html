@@ -21,33 +21,45 @@
     </div>
 
     <div class="content-container">
-        <h1>Send Emails</h1>
+        <h1 style="margin: 2px">Send Emails</h1>
         <form id="emailForm">
             <div class="form-group">
                 <label for="hoursDropdown">Select Hours:</label>
                 <select id="hoursDropdown" name="hours">
-                    <option label="50" selected="selected">50</option>
-                    <option label="100">100</option>
-                    <option label="150">150</option>
-                    <option label="200">200</option>
-                    <option label="250">250</option>
-                    <option label="300">300</option>
-                    <option label="350">350</option>
-                    <option label="400">400</option>
-                    <option label="450">450</option>
-                    <option label="500">500</option>
+                    <option value="bronze" selected="selected">Bronze (0–49 hours)</option>
+                    <option value="silver">Silver (50–99 hours)</option>
+                    <option value="gold">Gold (100–149 hours)</option>
+                    <option value="platinum">Platinum (150–199 hours)</option>
+                    <option value="diamond">Diamond (200+ hours)</option>
                 </select>
             </div>
             <div class="form-group">
                 <button type="button" id="fetchDataButton">Fetch Names and Emails</button>
             </div>
             <div class="form-group">
-                <label for="namesTextarea">Names:</label>
-                <textarea id="namesTextarea" name="names" rows="5" cols="80"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="emailsTextarea">Emails:</label>
-                <textarea id="emailsTextarea" name="emails" rows="5" cols="80"></textarea>
+                <label>Names, Emails, and Hours:</label>
+                <div class="styled-table-wrapper">
+                    <table id="namesEmailsTable" class="styled-table">
+                        <colgroup>
+                           <col span="1" style="width: 35%;">
+                           <col span="1" style="width: 43%;">
+                           <col span="1" style="width: 2%;">
+                           <col span="1" style="width: 20%;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th class="name-col">Name</th>
+                                <th class="email-col">Email</th>
+                                <th class="hour-col">Hours</th>
+                                <th class="remove-col">Remove</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows will be added dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="add-row-btn" onclick="addRow('', '', '', true)">Add Row</button>
             </div>
             <div class="form-group">
                 <button type="button" id="sendEmailButton" onclick="sendEmails()" disabled>Send Emails</button>
@@ -55,6 +67,26 @@
         </form>
     </div>
     <script>
+        function addRow(name = '', email = '', hour = '', editableHour = false) {
+            const table = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
+            const row = table.insertRow();
+            const nameCell = row.insertCell(0);
+            const emailCell = row.insertCell(1);
+            const hourCell = row.insertCell(2);
+            const removeCell = row.insertCell(3);
+
+            nameCell.innerHTML = `<input type="text" value="${name}" class="input-name">`;
+            emailCell.innerHTML = `<input type="text" value="${email}" class="input-email">`;
+            hourCell.innerHTML = `<input type="text" value="${hour}" class="input-hour" ${editableHour ? '' : 'readonly'}>`;
+            removeCell.innerHTML = `<button type="button" onclick="removeRow(this)" class="remove-btn">Remove</button>`;
+            row.classList.add("styled-row");
+        }
+
+        function removeRow(btn) {
+            const row = btn.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+        }
+
         document.getElementById('fetchDataButton').addEventListener('click', async function () {
             const selectedHour = document.getElementById('hoursDropdown').value;
             if (!selectedHour) {
@@ -68,24 +100,47 @@
                     throw new Error('Failed to fetch data');
                 }
                 const data = await response.json();
-                document.getElementById('namesTextarea').value = data.names.join('\n');
-                document.getElementById('emailsTextarea').value = data.emails.join('\n');
+
+                // Clear table
+                const tableBody = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
+                tableBody.innerHTML = '';
+
+                // Populate table (hour field not editable for fetched data)
+                for (let i = 0; i < data.names.length; i++) {
+                    addRow(
+                        data.names[i],
+                        data.emails[i] || '',
+                        data.hours && data.hours[i] !== undefined ? data.hours[i] : '',
+                        false
+                    );
+                }
 
                 const sendEmailButton = document.getElementById('sendEmailButton');
                 sendEmailButton.disabled = data.emails.length === 0;
             } catch (error) {
                 alert('Error fetching names and emails: ' + error.message);
-                document.getElementById('namesTextarea').value = '';
-                document.getElementById('emailsTextarea').value = '';
+                // Clear table
+                const tableBody = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
+                tableBody.innerHTML = '';
             }
         });
 
         async function sendEmails() {
-            const names = document.getElementById('namesTextarea').value;
-            const emails = document.getElementById('emailsTextarea').value;
+            const table = document.getElementById('namesEmailsTable').getElementsByTagName('tbody')[0];
+            const rows = table.getElementsByTagName('tr');
+            const names = [];
+            const emails = [];
+            for (let i = 0; i < rows.length; i++) {
+                const name = rows[i].cells[0].getElementsByTagName('input')[0].value.trim();
+                const email = rows[i].cells[1].getElementsByTagName('input')[0].value.trim();
+                if (name && email) {
+                    names.push(name);
+                    emails.push(email);
+                }
+            }
             const hours = document.getElementById('hoursDropdown').value;
 
-            if (!names || !emails || !hours) {
+            if (!names.length || !emails.length || !hours) {
                 alert('Please ensure names, emails, and hours are provided.');
                 return;
             }
@@ -97,8 +152,8 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        names: names.split('\n'),
-                        emails: emails.split('\n'),
+                        names: names,
+                        emails: emails,
                         hours: hours
                     }),
                 });
