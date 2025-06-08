@@ -80,12 +80,14 @@ def gen_pdfs():
             cert = generate_certificate(name, tier)
             file_list.append((cert, f"{name} {tier.title()} Certificate.pdf"))
 
-        with ZipFile("Certificates.zip", "w") as zipf:
+        save_dir = "tmp" if os.getenv("VERCEL") is None else "/tmp"
+        os.makedirs(save_dir, exist_ok=True)
+        with ZipFile(f"{save_dir}/{tier} Certificates.zip", "w") as zipf:
             for cert, file_name in file_list:
                 zipf.writestr(file_name, cert.read())
 
         return send_file(
-            "Certificates.zip",
+            f"{save_dir}/{tier} Certificates.zip",
             as_attachment=True,
             download_name=f"{tier.title()} Certificates.zip",
         )
