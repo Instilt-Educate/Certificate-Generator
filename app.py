@@ -1,4 +1,4 @@
-from flask import Flask, send_file, request, render_template, flash
+from flask import Flask, send_file, request, render_template, flash, send_from_directory
 from PIL import Image, ImageFont, ImageDraw
 from datetime import datetime
 from zipfile import ZipFile
@@ -266,6 +266,15 @@ def get_names_emails():
         print("Error fetching records:", response.status_code)
         print(response.text)
         return {"error": "Failed to fetch records"}, 500
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'favicon.ico',
+        mimetype='image/vnd.microsoft.icon'
+    )
 
 
 if __name__ == '__main__':
