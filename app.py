@@ -212,11 +212,11 @@ def send_email():
             <p>
               The Certificate of Achievement is granted based on accumulated
               volunteer hours, with the following tiers:
-              <strong>Bronze</strong> (0–49 hours),
-              <strong>Silver</strong> (50–99 hours),
-              <strong>Gold</strong> (100–149 hours),
-              <strong>Platinum</strong> (150–199 hours),
-              and <strong>Diamond</strong> (200+ hours).
+              <strong>Bronze</strong> (50-99 hours),
+              <strong>Silver</strong> (100-149 hours),
+              <strong>Gold</strong> (150–199 hours),
+              <strong>Platinum</strong> (200–249 hours),
+              and <strong>Diamond</strong> (250+ hours).
             </p>
             <p>Thank you for sharing your time, kindness, and energy.</p>
             <p>
@@ -228,7 +228,7 @@ def send_email():
         """
 
         fallback_body = (
-            f"Hi {name},\nWe hope this email finds you well. Below you will find your volunteer hours certificate as a token of appreciation from us. Your commitment and generosity have made a real difference. Every hour you've given has contributed to something bigger than yourself, leaving a lasting impact on those around you. The Certificate of Achievement is granted based on accumulated volunteer hours, with the following tiers: Bronze (0-49 hours), Silver (50-99 hours), Gold (100-149 hours), Platinum (150-199 hours), and Diamond (200+ hours).\n"
+            f"Hi {name},\nWe hope this email finds you well. Below you will find your volunteer hours certificate as a token of appreciation from us. Your commitment and generosity have made a real difference. Every hour you've given has contributed to something bigger than yourself, leaving a lasting impact on those around you. The Certificate of Achievement is granted based on accumulated volunteer hours, with the following tiers: Bronze (50-99 hours), Silver (100-149 hours), Gold (150-199 hours), Platinum (199-249 hours), and Diamond (250+ hours).\n"
             "Thank you for sharing your time, kindness, and energy.\n\n"
             "Best\n"
             "Instilt Educate"
