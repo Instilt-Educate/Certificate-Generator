@@ -246,7 +246,27 @@ def send_email():
             print(f"Failed to send email to {email}: {e}")
             return {"error": f"Failed to send email to {email}"}, 500
 
-    return {"message": "Emails sent successfully!"}, 200
+    # Issue certificates after all emails sent
+    success, result = issue_certificates(names, tier)
+    if not success:
+        return {"error": f"Emails sent but failed to issue certificates: {result}"}, 500
+
+    return {"message": "Emails sent and certificates issued successfully!"}, 200
+
+
+def issue_certificates(names, tier):
+    url = "https://tutor-timings.vercel.app/issueCertificates"
+    payload = {"names": names, "tier": tier}
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            return True, response.json()
+        else:
+            print(f"Failed to issue certificates: {response.status_code}", response.text)
+            return False, response.text
+    except Exception as e:
+        print(f"Exception while issuing certificates: {e}")
+        return False, str(e)
 
 
 @app.route('/get-names-emails', methods=["GET"])

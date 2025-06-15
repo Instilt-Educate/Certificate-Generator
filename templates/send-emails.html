@@ -185,11 +185,12 @@
                     }),
                 });
 
+                const result = await response.json();
                 if (!response.ok) {
-                    throw new Error('Failed to send emails');
+                    throw new Error(result.message || 'Failed to send emails');
                 }
 
-                alert('Emails sent successfully!');
+                alert(result.message || 'Emails sent successfully!');
             } catch (error) {
                 alert('Error sending emails: ' + error.message);
             }
