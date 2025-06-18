@@ -1,6 +1,6 @@
-from flask import Flask, send_file, request, render_template, flash, send_from_directory
+from flask import Flask, send_file, request, render_template, flash, send_from_directory, session, redirect, url_for
 from PIL import Image, ImageFont, ImageDraw
-from datetime import datetime
+from datetime import datetime, timedelta
 from zipfile import ZipFile
 import zipfile
 from io import BytesIO
@@ -19,6 +19,14 @@ dotenv.load_dotenv('.env')
 app = Flask(__name__)
 app.secret_key = "secret1"
 
+app.config.update(
+    SESSION_COOKIE_HTTPONLY = True,
+    SESSION_COOKIE_SECURE = True,
+    SESSION_PERMANENT = True,
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=5)
+)
+
+password_selected = os.environ.get("PASSWORD")
 
 def generate_certificate(name, tier, title_size=110):
     if len(name) > 18:
@@ -60,7 +68,23 @@ def generate_pdfs():
 
 @app.route('/send-emails')
 def send_emails():
-    return render_template("send-emails.html")
+    if session.get('logged_in'):
+        return render_template("send-emails.html")
+    else:
+        return redirect(url_for('login'))
+    
+
+@app.route('/login', methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        password = request.form.get("password")
+        if password == password_selected:
+            session['logged_in'] = True
+            return redirect(url_for("send_emails"))
+        else:
+            return "Incorrect password"
+        
+    return render_template("login.html")
 
 
 @app.route('/generate-hour-pdfs', methods=["POST"])
