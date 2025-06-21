@@ -1,7 +1,17 @@
 <html>
-    <h1>Password Required</h1>
+    <head>
+        <meta charset="UTF-8">
+        <title>Password</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    </head>
+    <h1 style="text-align: center; padding-top: 1rem;">Password Required</h1>
+    <h4 style="text-align: center;">A password is required to access this part of the site.</h2>
     <form method="POST">
-        <input type="password" id="password" name="password" required>
-        <button type="submit">Submit</button>
+        <div style="text-align: center;">
+            <input type="password" id="password" name="password" style="width: 100%; text-align: center; font-size: large;" required>
+        </div>
+        <button type="submit" style="font-size: large;">Submit</button>
     </form>
 </html>
