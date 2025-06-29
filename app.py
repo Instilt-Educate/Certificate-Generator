@@ -23,7 +23,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY = True,
     SESSION_COOKIE_SECURE = True,
     SESSION_PERMANENT = True,
-    PERMANENT_SESSION_LIFETIME = timedelta(minutes=5)
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=60)
 )
 
 password_selected = os.environ.get("PASSWORD")
@@ -58,12 +58,18 @@ def generate_certificate(name, tier, title_size=110):
 
 @app.route('/')
 def index():
-    return render_template("index.html")
+    if session.get('logged_in'):
+        return render_template("index.html")
+    else:
+        return redirect(url_for('login'))
 
 
 @app.route('/generate-pdfs', methods=["POST", "GET"])
 def generate_pdfs():
-    return render_template("generate-pdfs.html")
+    if session.get('logged_in'):
+        return render_template("generate-pdfs.html")
+    else:
+        return redirect(url_for('login'))
 
 
 @app.route('/send-emails')
@@ -82,7 +88,7 @@ def login():
             session['logged_in'] = True
             return redirect(url_for("send_emails"))
         else:
-            return "Incorrect password"
+            return render_template("login_error.html")
         
     return render_template("login.html")
 
