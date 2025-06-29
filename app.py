@@ -14,6 +14,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+import logging
 
 dotenv.load_dotenv('.env')
 app = Flask(__name__)
@@ -27,6 +28,12 @@ app.config.update(
 )
 
 password_selected = os.environ.get("PASSWORD")
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
 
 def generate_certificate(name, tier, title_size=110):
     if len(name) > 18:
@@ -84,10 +91,15 @@ def send_emails():
 def login():
     if request.method == "POST":
         password = request.form.get("password")
-        if password == password_selected:
+        user_name = request.form.get("name", "").strip()
+        user_ip = request.remote_addr
+        if password == password_selected and user_name:
             session['logged_in'] = True
+            session['user_name'] = user_name
+            logging.info(f"LOGIN SUCCESS by '{user_name}' from {user_ip}")
             return redirect(url_for("send_emails"))
         else:
+            logging.warning(f"LOGIN FAILURE by '{user_name}' from {user_ip}")
             return render_template("login_error.html")
         
     return render_template("login.html")
@@ -96,7 +108,10 @@ def login():
 @app.route('/generate-hour-pdfs', methods=["POST"])
 def gen_pdfs():
     tier = request.form.get("hours")  # This is the tier name
+    user_name = session.get('user_name', 'Unknown')
+    user_ip = request.remote_addr
     if not tier:
+        logging.warning(f"PDF GENERATION FAILED (no tier) by '{user_name}'")
         return {"error": "Tier not provided"}, 400
 
     response = requests.get(f"https://tutor-timings.vercel.app/getRecords?tier={tier}")
@@ -105,6 +120,7 @@ def gen_pdfs():
         json_1 = response.json()
         for x in range(len(json_1)):
             names.append(json_1[x]["name"].strip())
+        logging.info(f"PDF GENERATION by '{user_name}' from {user_ip} for tier '{tier}' for names: {names}")
         file_list = []
         for name in names:
             cert = generate_certificate(name, tier)
@@ -122,8 +138,7 @@ def gen_pdfs():
             download_name=f"{tier.title()} Certificates.zip",
         )
     else:
-        print("error in fetching records", response.status_code)
-        print(response.text)
+        logging.error(f"PDF GENERATION ERROR by '{user_name}': {response.status_code} {response.text}")
         return {"error": "Failed to fetch records, please try again or reach out to Tech Ops!"}, 500
 
 
@@ -134,6 +149,8 @@ def gen():
         names = request.form.get("name").replace("\r", "").split("\n")
         tier = request.form.get("hours")
         emails = request.form.get("email")
+        user_name = session.get('user_name', 'Unknown')
+        user_ip = request.remote_addr
         if not names or not tier:
             print("all fields not filled")
             flash("Please fill in all the fields.")
@@ -141,6 +158,7 @@ def gen():
 
         file_list = []
         if len(names) > 1:
+            logging.info(f"PDF GENERATION by '{user_name}' from {user_ip} for tier '{tier}' for names: {names}")
             for name in names:
                 name = name.strip()
                 cert = generate_certificate(name, tier)
@@ -156,6 +174,7 @@ def gen():
 
             return send_file(f"{save_dir}/Certificates.zip", as_attachment=True, download_name="Certificates.zip")
         else:
+            logging.info(f"PDF GENERATION by '{user_name}' for tier '{tier}' for name: {names[0]}")
             cert = generate_certificate(names[0], tier)
             return send_file(cert, as_attachment=True, download_name=f"{names[0]} {tier.title()} Certificate.pdf")
     else:
@@ -215,11 +234,17 @@ def send_email():
     names = request.json.get("names")
     emails = request.json.get("emails")
     tier = request.json.get("hours")
+    user_name = session.get('user_name', 'Unknown')
+    user_ip = request.remote_addr
 
     if not names or not emails or not tier:
+        logging.warning(f"EMAIL SEND FAILED (missing fields) by '{user_name}'")
         return {"error": "All fields (names, emails, hours) are required"}, 400
     if len(names) != len(emails):
+        logging.warning(f"EMAIL SEND FAILED (count mismatch) by '{user_name}'")
         return {"error": "The number of names and emails must match"}, 400
+
+    logging.info(f"EMAIL SEND by '{user_name}' from {user_ip} for tier '{tier}' to: {list(zip(names, emails))}")
 
     for name, email in zip(names, emails):
         name = name.strip().title()
@@ -273,14 +298,16 @@ def send_email():
                 attachment_filename=f"{name} {tier.title()} Certificate.pdf"
             )
         except Exception as e:
-            print(f"Failed to send email to {email}: {e}")
+            logging.error(f"Failed to send email to {email}: {e}")
             return {"error": f"Failed to send email to {email}"}, 500
 
     # Issue certificates after all emails sent
     success, result = issue_certificates(names, tier)
     if not success:
+        logging.error(f"Emails sent but failed to issue certificates for {names}: {result}")
         return {"error": f"Emails sent but failed to issue certificates: {result}"}, 500
 
+    logging.info(f"Emails sent and certificates issued for: {names}")
     return {"message": "Emails sent and certificates issued successfully!"}, 200
 
 

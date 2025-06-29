@@ -1,17 +1,22 @@
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Password</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
-        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    </head>
-    <h1 style="text-align: center; padding-top: 1rem;">Password Required</h1>
-    <h2 style="text-align: center;">A password is required to access this site.</h2>
-    <form method="POST">
-        <div style="text-align: center;">
-            <input type="password" id="password" name="password" style="width: 100%; text-align: center; font-size: large;" required>
-        </div>
-        <button type="submit" style="font-size: large;">Submit</button>
-    </form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/styles.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+<body>
+    <div class="content-container" style="max-width: 400px; margin-top: 60px;">
+        <h2>Login</h2>
+        <form method="POST" action="/login">
+            <label for="name">Your Name:</label>
+            <input type="text" id="name" name="name" required style="width:100%;margin-bottom:12px;">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required style="width:100%;margin-bottom:18px;">
+            <button type="submit" class="add-row-btn" style="width:auto;">Login</button>
+        </form>
+    </div>
+</body>
 </html>
