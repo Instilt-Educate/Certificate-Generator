@@ -221,6 +221,42 @@ button {
     color: #7a2c2c;
 }
 
+.login-card {
+    background: #e3e7ef;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(100, 100, 100, 0.10);
+    padding: 32px 28px 24px 28px;
+    max-width: 370px;
+    margin: 70px auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.login-card h2 {
+    margin-bottom: 18px;
+    color: #1a2a3a;
+}
+.login-card label {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #2a3a4a;
+    display: block;
+}
+.login-card input[type="text"],
+.login-card input[type="password"] {
+    width: 100%;
+    padding: 10px 8px;
+    margin-bottom: 18px;
+    border: 1px solid #bfc9d9;
+    border-radius: 5px;
+    font-size: 1em;
+    background: #fff;
+}
+.login-card button {
+    width: 100%;
+    margin-top: 6px;
+}
+
 @media (max-width: 900px) {
   .header-container,
   .content-container,
@@ -328,10 +364,6 @@ button {
     font-size: 0.9em;
     padding: 2px;
   }
-  .remove-btn, .add-row-btn {
-    font-size: 0.95em;
-    padding: 3px 7px;
-  }
 }
 
 @media (max-width: 400px) {
@@ -346,4 +378,11 @@ button {
     font-size: 0.9em;
     padding: 2px 4px;
   }
+}
+
+@media (max-width: 500px) {
+    .login-card {
+        padding: 18px 8px 14px 8px;
+        max-width: 98vw;
+    }
 }

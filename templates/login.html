@@ -8,14 +8,14 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
-    <div class="content-container" style="max-width: 400px; margin-top: 60px;">
+    <div class="login-card">
         <h2>Login</h2>
         <form method="POST" action="/login">
             <label for="name">Your Name:</label>
-            <input type="text" id="name" name="name" required style="width:100%;margin-bottom:12px;">
+            <input type="text" id="name" name="name" required>
             <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required style="width:100%;margin-bottom:18px;">
-            <button type="submit" class="add-row-btn" style="width:auto;">Login</button>
+            <input type="password" id="password" name="password" required>
+            <button type="submit" class="add-row-btn">Login</button>
         </form>
     </div>
 </body>
