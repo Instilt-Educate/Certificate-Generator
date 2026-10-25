@@ -23,15 +23,14 @@
 
     <div class="content-container">
         <h1 style="margin: 2px">Send Emails</h1>
+        {% if tiers_error %}<p style="color:#8d1a1a">{{ tiers_error }}</p>{% endif %}
         <form id="emailForm">
             <div class="form-group">
                 <label for="hoursDropdown">Select Hours:</label>
                 <select id="hoursDropdown" name="hours">
-                    <option value="bronze" selected="selected">Bronze (50–99 hours)</option>
-                    <option value="silver">Silver (100–149 hours)</option>
-                    <option value="gold">Gold (150–199 hours)</option>
-                    <option value="platinum">Platinum (200–249 hours)</option>
-                    <option value="diamond">Diamond (250+ hours)</option>
+                    {% for tier in tiers %}
+                    <option value="{{ tier.key }}"{% if loop.first %} selected="selected"{% endif %}>{{ tier.label }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="form-group">
