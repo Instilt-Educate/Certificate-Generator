@@ -6,6 +6,7 @@ import zipfile
 from io import BytesIO
 import dotenv
 import os
+import re
 
 import requests
 import base64
@@ -15,6 +16,9 @@ from email.mime.application import MIMEApplication
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import logging
+
+from markupsafe import escape
+from tiers import API_BASE, get_tiers, get_tier, TiersUnavailable
 
 dotenv.load_dotenv('.env')
 app = Flask(__name__)
@@ -35,13 +39,21 @@ logging.basicConfig(
     format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
 )
 
+CERTIFICATE_DIR = os.path.join(app.root_path, 'static', 'certificates')
+
+
 def generate_certificate(name, tier, title_size=110):
+    """Draw `name` and today's date on the template for `tier` (a dict from tiers.get_tier).
+
+    Templates live at static/certificates/<tier key>.png. A missing template is an
+    error on purpose: falling back to another tier's image would hand out a
+    certificate that names the wrong tier.
+    """
     if len(name) > 18:
         title_size = 95  # change this to make the font smaller or bigger if required
-    try:
-        my_img = Image.open(f'static/{tier.lower()}.png')
-    except:
-        my_img = Image.open(f'static/bronze.png')
+    if not re.fullmatch(r'[a-z0-9_]+', tier['key']):
+        raise ValueError(f"Unsafe tier key: {tier['key']!r}")
+    my_img = Image.open(os.path.join(CERTIFICATE_DIR, f"{tier['key']}.png"))
     my_img = my_img.convert("RGB")
     width, height = my_img.size
     title_font = ImageFont.truetype(r'static/Anglecia-Pro-Display.otf', title_size)
@@ -63,10 +75,32 @@ def generate_certificate(name, tier, title_size=110):
     return obj
 
 
+def render_with_tiers(template):
+    """Render a page that lists the award tiers (loaded from the API)."""
+    try:
+        return render_template(template, tiers=get_tiers())
+    except TiersUnavailable as e:
+        logging.error(f"Could not load award tiers for {template}: {e}")
+        return render_template(template, tiers=[],
+                               tiers_error="Could not load the award tiers. Please refresh, or reach out to Tech Ops!"), 503
+
+
+def resolve_tier(key):
+    """(tier, None) for an active tier key, otherwise (None, (json_error, status))."""
+    try:
+        tier = get_tier(key)
+    except TiersUnavailable as e:
+        logging.error(f"Could not load award tiers: {e}")
+        return None, ({"error": "Could not load the award tiers, please try again or reach out to Tech Ops!"}, 503)
+    if tier is None:
+        return None, ({"error": f"Unknown or inactive tier: {key}"}, 400)
+    return tier, None
+
+
 @app.route('/')
 def index():
     if session.get('logged_in'):
-        return render_template("index.html")
+        return render_with_tiers("index.html")
     else:
         return redirect(url_for('login'))
 
@@ -74,7 +108,7 @@ def index():
 @app.route('/generate-pdfs', methods=["POST", "GET"])
 def generate_pdfs():
     if session.get('logged_in'):
-        return render_template("generate-pdfs.html")
+        return render_with_tiers("generate-pdfs.html")
     else:
         return redirect(url_for('login'))
 
@@ -82,7 +116,7 @@ def generate_pdfs():
 @app.route('/send-emails')
 def send_emails():
     if session.get('logged_in'):
-        return render_template("send-emails.html")
+        return render_with_tiers("send-emails.html")
     else:
         return redirect(url_for('login'))
     
@@ -107,35 +141,40 @@ def login():
 
 @app.route('/generate-hour-pdfs', methods=["POST"])
 def gen_pdfs():
-    tier = request.form.get("hours")  # This is the tier name
+    tier_key = request.form.get("hours")  # This is the tier key
     user_name = session.get('user_name', 'Unknown')
     user_ip = request.remote_addr
-    if not tier:
+    if not tier_key:
         logging.warning(f"PDF GENERATION FAILED (no tier) by '{user_name}'")
         return {"error": "Tier not provided"}, 400
+    tier, error = resolve_tier(tier_key)
+    if error:
+        logging.warning(f"PDF GENERATION FAILED ({error[0]['error']}) by '{user_name}'")
+        return error
 
-    response = requests.get(f"https://tutor-timings.vercel.app/getRecords?tier={tier}")
+    response = requests.get(f"{API_BASE}/getRecords", params={"tier": tier["key"]})
     names = []
     if response.status_code == 200:
         json_1 = response.json()
         for x in range(len(json_1)):
             names.append(json_1[x]["name"].strip())
-        logging.info(f"PDF GENERATION by '{user_name}' from {user_ip} for tier '{tier}' for names: {names}")
+        logging.info(f"PDF GENERATION by '{user_name}' from {user_ip} for tier '{tier['key']}' for names: {names}")
         file_list = []
         for name in names:
             cert = generate_certificate(name, tier)
-            file_list.append((cert, f"{name} {tier.title()} Certificate.pdf"))
+            file_list.append((cert, f"{name} {tier['name']} Certificate.pdf"))
 
         save_dir = "tmp" if os.getenv("VERCEL") is None else "/tmp"
         os.makedirs(save_dir, exist_ok=True)
-        with ZipFile(f"{save_dir}/{tier} Certificates.zip", "w") as zipf:
+        zip_path = f"{save_dir}/{tier['key']} Certificates.zip"
+        with ZipFile(zip_path, "w") as zipf:
             for cert, file_name in file_list:
                 zipf.writestr(file_name, cert.read())
 
         return send_file(
-            f"{save_dir}/{tier} Certificates.zip",
+            zip_path,
             as_attachment=True,
-            download_name=f"{tier.title()} Certificates.zip",
+            download_name=f"{tier['name']} Certificates.zip",
         )
     else:
         logging.error(f"PDF GENERATION ERROR by '{user_name}': {response.status_code} {response.text}")
@@ -147,22 +186,27 @@ def gen():
     if request.method == 'POST':
         print(request.form)
         names = request.form.get("name").replace("\r", "").split("\n")
-        tier = request.form.get("hours")
+        tier_key = request.form.get("hours")
         emails = request.form.get("email")
         user_name = session.get('user_name', 'Unknown')
         user_ip = request.remote_addr
-        if not names or not tier:
+        if not names or not tier_key:
             print("all fields not filled")
             flash("Please fill in all the fields.")
-            return render_template("index.html")
+            return render_with_tiers("index.html")
+        tier, error = resolve_tier(tier_key)
+        if error:
+            logging.warning(f"PDF GENERATION FAILED ({error[0]['error']}) by '{user_name}'")
+            flash(error[0]["error"])
+            return render_with_tiers("index.html")
 
         file_list = []
         if len(names) > 1:
-            logging.info(f"PDF GENERATION by '{user_name}' from {user_ip} for tier '{tier}' for names: {names}")
+            logging.info(f"PDF GENERATION by '{user_name}' from {user_ip} for tier '{tier['key']}' for names: {names}")
             for name in names:
                 name = name.strip()
                 cert = generate_certificate(name, tier)
-                file_list.append((cert, f"{name} {tier.title()} Certificate.pdf"))
+                file_list.append((cert, f"{name} {tier['name']} Certificate.pdf"))
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zipf:
                 for cert, file_name in file_list:
@@ -174,11 +218,11 @@ def gen():
 
             return send_file(f"{save_dir}/Certificates.zip", as_attachment=True, download_name="Certificates.zip")
         else:
-            logging.info(f"PDF GENERATION by '{user_name}' for tier '{tier}' for name: {names[0]}")
+            logging.info(f"PDF GENERATION by '{user_name}' for tier '{tier['key']}' for name: {names[0]}")
             cert = generate_certificate(names[0], tier)
-            return send_file(cert, as_attachment=True, download_name=f"{names[0]} {tier.title()} Certificate.pdf")
+            return send_file(cert, as_attachment=True, download_name=f"{names[0]} {tier['name']} Certificate.pdf")
     else:
-        return render_template("index.html")
+        return render_with_tiers("index.html")
 
 
 def build_gmail_service():
@@ -229,28 +273,49 @@ def send_gmail_api_email(to, subject, html_body, body, attachment_bytes=None, at
     gmail_service.users().messages().send(userId='me', body={'raw': raw}).execute()
 
 
+def describe_tiers(tier_list):
+    """The tiers as a sentence fragment for the email body: (html, plain text)."""
+    def join(parts):
+        return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + ", and " + parts[-1]
+    html = join([f"<strong>{escape(t['name'])}</strong> ({t['hours_range']})" for t in tier_list])
+    text = join([f"{t['name']} ({t['hours_range']})" for t in tier_list])
+    return html, text
+
+
 @app.route("/send-email", methods=["POST"])
 def send_email():
     names = request.json.get("names")
     emails = request.json.get("emails")
-    tier = request.json.get("hours")
+    tier_key = request.json.get("hours")
     user_name = session.get('user_name', 'Unknown')
     user_ip = request.remote_addr
 
-    if not names or not emails or not tier:
+    if not names or not emails or not tier_key:
         logging.warning(f"EMAIL SEND FAILED (missing fields) by '{user_name}'")
         return {"error": "All fields (names, emails, hours) are required"}, 400
     if len(names) != len(emails):
         logging.warning(f"EMAIL SEND FAILED (count mismatch) by '{user_name}'")
         return {"error": "The number of names and emails must match"}, 400
+    tier, error = resolve_tier(tier_key)
+    if error:
+        logging.warning(f"EMAIL SEND FAILED ({error[0]['error']}) by '{user_name}'")
+        return error
 
-    logging.info(f"EMAIL SEND by '{user_name}' from {user_ip} for tier '{tier}' to: {list(zip(names, emails))}")
+    logging.info(f"EMAIL SEND by '{user_name}' from {user_ip} for tier '{tier['key']}' to: {list(zip(names, emails))}")
 
-    for name, email in zip(names, emails):
-        name = name.strip().title()
-        email = email.strip()
-        cert = generate_certificate(name, tier)
-        cert_bytes = cert.read()
+    # Build every certificate before sending anything, so a problem with the
+    # template can't leave a half-sent batch.
+    try:
+        outgoing = []
+        for name, email in zip(names, emails):
+            name = name.strip().title()
+            outgoing.append((name, email.strip(), generate_certificate(name, tier).read()))
+        tier_list_html, tier_list_text = describe_tiers(get_tiers())
+    except (OSError, ValueError, TiersUnavailable) as e:
+        logging.error(f"EMAIL SEND FAILED (could not build certificates) by '{user_name}': {e}")
+        return {"error": "Could not generate the certificates, nothing was sent. Please reach out to Tech Ops!"}, 500
+
+    for name, email, cert_bytes in outgoing:
         subject = 'Instilt Volunteer Hour Certificate'
 
         html_body = f"""
@@ -267,11 +332,7 @@ def send_email():
             <p>
               The Certificate of Achievement is granted based on accumulated
               volunteer hours, with the following tiers:
-              <strong>Bronze</strong> (50-99 hours),
-              <strong>Silver</strong> (100-149 hours),
-              <strong>Gold</strong> (150–199 hours),
-              <strong>Platinum</strong> (200–249 hours),
-              and <strong>Diamond</strong> (250+ hours).
+              {tier_list_html}.
             </p>
             <p>Thank you for sharing your time, kindness, and energy.</p>
             <p>
@@ -283,7 +344,7 @@ def send_email():
         """
 
         fallback_body = (
-            f"Hi {name},\nWe hope this email finds you well. Below you will find your volunteer hours certificate as a token of appreciation from us. Your commitment and generosity have made a real difference. Every hour you've given has contributed to something bigger than yourself, leaving a lasting impact on those around you. The Certificate of Achievement is granted based on accumulated volunteer hours, with the following tiers: Bronze (50-99 hours), Silver (100-149 hours), Gold (150-199 hours), Platinum (199-249 hours), and Diamond (250+ hours).\n"
+            f"Hi {name},\nWe hope this email finds you well. Below you will find your volunteer hours certificate as a token of appreciation from us. Your commitment and generosity have made a real difference. Every hour you've given has contributed to something bigger than yourself, leaving a lasting impact on those around you. The Certificate of Achievement is granted based on accumulated volunteer hours, with the following tiers: {tier_list_text}.\n"
             "Thank you for sharing your time, kindness, and energy.\n\n"
             "Best\n"
             "Instilt Educate"
@@ -295,14 +356,14 @@ def send_email():
                 html_body=html_body,
                 body=fallback_body,
                 attachment_bytes=cert_bytes,
-                attachment_filename=f"{name} {tier.title()} Certificate.pdf"
+                attachment_filename=f"{name} {tier['name']} Certificate.pdf"
             )
         except Exception as e:
             logging.error(f"Failed to send email to {email}: {e}")
             return {"error": f"Failed to send email to {email}"}, 500
 
     # Issue certificates after all emails sent
-    success, result = issue_certificates(names, tier)
+    success, result = issue_certificates(names, tier["key"])
     if not success:
         logging.error(f"Emails sent but failed to issue certificates for {names}: {result}")
         return {"error": f"Emails sent but failed to issue certificates: {result}"}, 500
@@ -312,7 +373,7 @@ def send_email():
 
 
 def issue_certificates(names, tier):
-    url = "https://tutor-timings.vercel.app/issueCertificates"
+    url = f"{API_BASE}/issueCertificates"
     payload = {"names": names, "tier": tier}
     try:
         response = requests.post(url, json=payload)
@@ -328,17 +389,20 @@ def issue_certificates(names, tier):
 
 @app.route('/get-names-emails', methods=["GET"])
 def get_names_emails():
-    tier = request.args.get("hours")  # This is the tier name
-    if not tier:
+    tier_key = request.args.get("hours")  # This is the tier key
+    if not tier_key:
         return {"error": "Tier not provided"}, 400
+    tier, error = resolve_tier(tier_key)
+    if error:
+        return error
 
-    response = requests.get(f"https://tutor-timings.vercel.app/getRecords?tier={tier}")
+    response = requests.get(f"{API_BASE}/getRecords", params={"tier": tier["key"]})
     if response.status_code == 200:
         json_data = response.json()
         names = [record["name"] for record in json_data]
         emails = [record["email"] for record in json_data if "email" in record]
         hours = [record.get("hours", "") for record in json_data]
-        return {"names": names, "emails": emails, "hours": hours, "tier": tier}, 200
+        return {"names": names, "emails": emails, "hours": hours, "tier": tier["key"]}, 200
     else:
         print("Error fetching records:", response.status_code)
         print(response.text)

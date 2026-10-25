@@ -22,27 +22,13 @@
     </div>
 
     <div class="content-container">
-         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="bronze">
-            <button type="submit">Bronze (50–99 hours) Certificates</button>
-        </form>
-
+        {% if tiers_error %}<p style="color:#8d1a1a">{{ tiers_error }}</p>{% endif %}
+        {% for tier in tiers %}
         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="silver">
-            <button type="submit">Silver (100–149 hours) Certificates</button>
+            <input type="hidden" name="hours" value="{{ tier.key }}">
+            <button type="submit">{{ tier.label }} Certificates</button>
         </form>
-        <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="gold">
-            <button type="submit">Gold (150–199 hours) Certificates</button>
-        </form>
-        <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="platinum">
-            <button type="submit">Platinum (200–249 hours) Certificates</button>
-        </form>
-         <form action="/generate-hour-pdfs" method="POST" onsubmit="showLoadingText()">
-            <input type="hidden" name="hours" value="diamond">
-            <button type="submit">Diamond (250+ hours) Certificates</button>
-        </form>
+        {% endfor %}
     </div>
     <div id="loading-text" style="display: none; text-align: center; margin-top: 20px;">
         <p>Generating... Please wait.</p>

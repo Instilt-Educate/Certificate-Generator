@@ -21,6 +21,8 @@
     </div>
     <div class="content-container">
         <h1>Generate and Download PDF</h1>
+        {% with messages = get_flashed_messages() %}{% for m in messages %}<p style="color:#8d1a1a">{{ m }}</p>{% endfor %}{% endwith %}
+        {% if tiers_error %}<p style="color:#8d1a1a">{{ tiers_error }}</p>{% endif %}
         <form method="POST" action="/generate-pdf">
             <label for="name">Names:</label>
             <br>
@@ -28,11 +30,9 @@
             <br>
             <label for="hours">Hours:</label>
             <select name="hours" id="hours">
-                <option value="bronze" selected="selected">Bronze (50-99 hours)</option>
-                <option value="silver">Silver (100-149 hours)</option>
-                <option value="gold">Gold (150-199 hours)</option>
-                <option value="platinum">Platinum (200-250 hours)</option>
-                <option value="diamond">Diamond (250+ hours)</option>
+                {% for tier in tiers %}
+                <option value="{{ tier.key }}"{% if loop.first %} selected="selected"{% endif %}>{{ tier.label }}</option>
+                {% endfor %}
             </select>
             <br>
             <br>
